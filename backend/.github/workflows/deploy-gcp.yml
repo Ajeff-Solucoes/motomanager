@@ -1,0 +1,43 @@
+name: GCP Deployment
+on:
+  push:
+    branches:
+      - portifolio
+
+jobs:
+  build_deploy:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup JDK 11 Temurin
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Empacotando o projeto
+        run: |
+          chmod +x mvnw
+          ./mvnw clean package
+
+      - name: Realizando login Dockerhub
+        env:
+          DOCKER_USER: ${{secrets.DOCKER_HUB_USER}}
+          DOCKER_TOKEN: ${{secrets.DOCKER_HUB_TOKEN}}
+        run: echo $DOCKER_TOKEN | docker login -u $DOCKER_USER --password-stdin
+
+      - name: Criando a Imagem do Projeto
+        run: docker build . --file Dockerfile --tag jeffersonpcinfo/motomanager:${{github.sha}}
+
+      - name: Enviando a Imagem para Dockerhub
+        run: docker push jeffersonpcinfo/motomanager:${{github.sha}}
+
+      - name: Rodando a Imagem Docker
+        env:
+          DOCKER_IMAGE: jeffersonpcinfo/motomanager:${{github.sha}}
+          CONTAINER_NAME: motomanager-api
+        run: |
+          docker rm -f $(docker ps -aq --filter "name=motomanager-api")
+          docker run -d --name $CONTAINER_NAME -p 8081:8080 $DOCKER_IMAGE

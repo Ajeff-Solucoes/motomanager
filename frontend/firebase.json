@@ -1,0 +1,10 @@
+{
+  "hosting": {
+    "public": "dist/motomanager",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}
